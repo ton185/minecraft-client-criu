@@ -1,0 +1,91 @@
+name: Build release
+
+run-name: Build release ${{ github.event.release.tag_name || inputs.tag }}
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub Release tag to build and attach assets to
+        required: true
+        type: string
+
+# Uploading assets is the only write operation performed by this workflow.
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    name: Build and upload Linux release
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: manager/go.mod
+          cache: false
+
+      - name: Check runner tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tool in python3 javac jar go zip unzip file ldd gh sha256sum; do
+            command -v "$tool" >/dev/null || {
+              echo "Required runner tool is missing: $tool" >&2
+              exit 1
+            }
+          done
+
+      - name: Bootstrap pinned build dependencies
+        run: python3 tools/bootstrap-build.py
+
+      - name: Build release archive
+        run: ./package.sh
+
+      - name: Verify archive and create checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -t out/mc-criu.zip
+
+          verify_dir=$(mktemp -d "$RUNNER_TEMP/mc-criu-release.XXXXXX")
+          unzip -q out/mc-criu.zip -d "$verify_dir"
+          sed -n '/^sha256 (of everything except this file)$/,$p' \
+            "$verify_dir/mc-criu/MANIFEST.txt" \
+            | tail -n +2 \
+            | sed 's/^  //' \
+            | (cd "$verify_dir/mc-criu" && sha256sum -c -)
+
+          (cd out && sha256sum mc-criu.zip > mc-criu.zip.sha256)
+          (cd out && sha256sum -c mc-criu.zip.sha256)
+
+      - name: Attach assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            out/mc-criu.zip \
+            out/mc-criu.zip.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
