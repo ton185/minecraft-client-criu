@@ -60,6 +60,9 @@ jobs:
       - name: Bootstrap pinned build dependencies
         run: python3 tools/bootstrap-build.py
 
+      - name: Make package scripts runnable
+        run: chmod +x ./package.sh ./manager/build.sh ./agent/build-mod.sh ./wrapper/build-jar.sh ./jeiwarm/build-mod.sh
+
       - name: Build release archive
         run: ./package.sh
 
