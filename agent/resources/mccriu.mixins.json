@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "mccriu.mc.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "SodiumGlFenceMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

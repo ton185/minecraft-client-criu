@@ -1,0 +1,40 @@
+modLoader="javafml"
+loaderVersion="[2,)"
+license="BSD-3-Clause"
+
+[[mixins]]
+config="jeiwarm.mixins.json"
+
+[[mods]]
+modId="jeiwarm"
+version="0.1.0"
+displayName="mc-criu warm JEI index"
+description='''
+Keeps JEI's built index alive across a disconnect so reconnecting to a server
+whose recipe set has not changed does not rebuild it. Measured at ~50s per join
+on a 500-mod pack. Inactive unless -Dmccriu.warmjei=true.
+'''
+
+[[dependencies.jeiwarm]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.0.0,)"
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.jeiwarm]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21,1.22)"
+    ordering="NONE"
+    side="CLIENT"
+
+# Required, not optional: every injection point is inside JEI, so without it
+# this mod has nothing to do and its mixins would fail to apply loudly rather
+# than silently doing nothing.
+[[dependencies.jeiwarm]]
+    modId="jei"
+    type="required"
+    versionRange="[19,)"
+    ordering="AFTER"
+    side="CLIENT"

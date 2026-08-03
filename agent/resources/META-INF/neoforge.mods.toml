@@ -1,0 +1,42 @@
+modLoader="javafml"
+loaderVersion="[2,)"
+license="BSD-3-Clause"
+
+[[mixins]]
+config="mccriu.mixins.json"
+
+[[mods]]
+modId="mccriu"
+version="0.1.0"
+displayName="mc-criu checkpoint agent"
+description='''
+Tears the graphics and audio stacks down so CRIU can checkpoint the client, and
+rebuilds them on restore without a resource-pack reload. Inactive unless
+-Dmccriu.session=<dir> is set.
+'''
+
+[[dependencies.mccriu]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.0.0,)"
+    ordering="NONE"
+    side="CLIENT"
+
+[[dependencies.mccriu]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21,1.22)"
+    ordering="NONE"
+    side="CLIENT"
+
+# Optional: the mixin is @Pseudo and does nothing when Sodium is absent. When
+# Sodium is installed, load after it so its GLsync wrappers can be made aware of
+# mc-criu's replacement GL context.
+[[dependencies.mccriu]]
+    modId="sodium"
+    type="optional"
+    # Includes 0.8.12-beta.2, whose affected classes are byte-identical to the
+    # final 0.8.12 build provisioned in runtime/mc.
+    versionRange="[0.8,)"
+    ordering="AFTER"
+    side="CLIENT"

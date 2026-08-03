@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "mccriu.jeiwarm.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ClientPacketListenerMixin",
+    "PluginLoaderMixin",
+    "JeiGuiStarterMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
