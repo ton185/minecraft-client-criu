@@ -10,6 +10,7 @@ Minecraft checkpoint/restore tool powered by [CRIU](https://criu.org/).
   - [Normal / Unsandboxed](#normal--unsandboxed)
   - [Flatpak](#flatpak)
 - [Troubleshooting](#troubleshooting)
+- [Build Guide](#building-mc-criu)
 
 ---
 
@@ -158,3 +159,109 @@ If your issue is not resolved after trying the flag:
    - Your wrapper command
    - The JVM flags you used
 
+
+# Building mc-criu
+
+The public source tree contains only the source and scripts needed to build the
+release. Test modpacks, third-party mods, Minecraft files, CRIU images, logs and
+the development experiment corpus are intentionally not included (to avoid license/size issues)
+
+## Supported build target
+
+The scripts build mc-criu for Linux and compile the client mods for Minecraft
+1.21.1 with NeoForge 21.1.244. The release manager binary is static, but it is
+built for the architecture of the installed Go toolchain.
+
+Required tools:
+
+- Linux and Bash
+- Python 3.10 or newer (standard library only)
+- JDK 21 (`java`, `javac` and `jar` on `PATH`)
+- Go 1.24 or newer
+- `zip`, `unzip`, `file` and `ldd`
+- Internet access during the one-time dependency bootstrap
+
+On Debian or Ubuntu, the non-language tools can be installed with:
+
+```bash
+sudo apt install openjdk-21-jdk golang-go python3 zip unzip file libc-bin
+```
+
+On Arch:
+```bash
+sudo pacman -Sy jdk21-openjdk go python3 zip unzip file
+```
+
+Distribution repositories may carry an older Go release. If `go version` is
+older than 1.24, install a current Go toolchain from <https://go.dev/dl/>.
+
+## One-time bootstrap
+
+From the repository root, run:
+
+```bash
+python3 tools/bootstrap-build.py
+chmod +x ./package.sh ./manager/build.sh ./agent/build-mod.sh ./wrapper/build-jar.sh ./jeiwarm/build-mod.sh
+```
+
+The bootstrap downloads build inputs into the ignored `runtime/` directory. It
+does not download game assets, a test modpack or any runtime tests. Downloads
+are pinned and checked before use:
+
+| Input | Pinned version | Verification |
+| --- | --- | --- |
+| Minecraft client metadata | 1.21.1 | SHA-1 `6d257dcfa9d74cdd9a83b4f5984674004decfa81` |
+| Minecraft client JAR | 1.21.1 | SHA-1 from the verified metadata (`30c73b1c5da787909b2f73340419fdf13b9def88`) |
+| NeoForge installer | 21.1.244 | SHA-256 `ac7bea8f5c8a1d64f8787d177cc890e3b9abf67ede800f999fe05386d46fcaa8` |
+| JEI compile API | 19.27.0.343 for NeoForge 1.21.1 | SHA-1 `de304e36e94ff54997d62ee881c904a4892fd6dc` |
+
+The NeoForge installer obtains its own transitive libraries and validates them
+using the checksums in its install profile. Minecraft, NeoForge and JEI remain
+third-party build inputs; they are downloaded locally and are not included in
+this source repository.
+
+The bootstrap is idempotent. To force a completely clean dependency setup,
+delete `runtime/` and run it again.
+
+## Build the release archive
+
+```bash
+./package.sh
+```
+
+The result is `out/mc-criu.zip`. The command builds:
+
+- the NeoForge checkpoint mod;
+- the static Go manager with that mod embedded;
+- the optional launcher javaagent;
+- the optional JEI caching addon; and
+- the user-facing release archive and checksum manifest.
+
+Check the completed archive with:
+
+```bash
+unzip -t out/mc-criu.zip
+sha256sum out/mc-criu.zip
+```
+
+## Build individual components
+
+After bootstrapping, the component scripts can also be run directly:
+
+```bash
+./agent/build-mod.sh       # runtime/mc/mods/mc-criu-mod.jar
+./manager/build.sh         # out/mc-criu-manager (also rebuilds/embeds the mod)
+./wrapper/build-jar.sh     # out/mc-criu-wrapper.jar
+./jeiwarm/build-mod.sh     # runtime/build-deps/mods/mc-criu-jei-addon.jar
+```
+
+`JEIWARM_JEI_JAR=/path/to/jei.jar` can be set to compile the JEI addon against a
+different compatible JEI 19.x JAR. `JEIWARM_GAME_DIR=/path/to/game` changes
+where that addon is written; by default it stays under `runtime/build-deps/`.
+
+## What is deliberately absent
+
+The public repository does not ship the private test harness or its fixtures.
+Those fixtures depend on large third-party mod collections and captured runtime
+state, neither of which is needed to inspect or compile mc-criu. Release builds
+are verified on the project test machines before publication.
