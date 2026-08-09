@@ -20,7 +20,7 @@ Minecraft checkpoint/restore tool powered by [CRIU](https://criu.org/).
 > **Do not use on Singleplayer.**
 > CRIU needs to revert some files to the state they were at the last checkpoint, which could roll back your worlds.
 
-> [!NOTE]
+> [!WARNING]
 > **Vibecoded**
 >
 > This project was vibecoded. I tested and personally use it on ATM10.
