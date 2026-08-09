@@ -21,6 +21,10 @@ Minecraft checkpoint/restore tool powered by [CRIU](https://criu.org/).
 > CRIU needs to revert some files to the state they were at the last checkpoint, which could roll back your worlds.
 
 > [!NOTE]
+> Vibecoded
+> This project was vibecoded. I tested and personally use it on ATM10.
+
+> [!NOTE]
 > If you have changed a config that requires a reboot to register, or installed/removed a mod, you will need to generate a new checkpoint.
 > The manager automatically detects mod changes, but if you changed a config, do a normal launch next time and create a checkpoint again.
 
